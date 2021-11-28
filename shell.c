@@ -91,7 +91,7 @@ static int do_job(token_t *token, int ntokens, bool bg) {
   pid_t pid = Fork();
 
   if (pid) { // Parent
-    setpgid(pid, pid);
+    // setpgid(pid, pid);
 
     MaybeClose(&input);
     MaybeClose(&output);
