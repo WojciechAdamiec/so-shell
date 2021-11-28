@@ -37,7 +37,7 @@ static int do_redir(token_t *token, int ntokens, int *inputp, int *outputp) {
       MaybeClose(inputp);
 
       // Read only
-      *inputp = Open(token[i + 1], O_RDONLY, 0);
+      *inputp = open(token[i + 1], O_RDONLY, 0);
 
       // Remove redirect and subsequent token
       token[i] = T_NULL;
@@ -47,7 +47,7 @@ static int do_redir(token_t *token, int ntokens, int *inputp, int *outputp) {
       MaybeClose(outputp);
 
       // Write only. Can create file. Permissions for new file: rw-, rw-, r--
-      *outputp = Open(token[i + 1], O_WRONLY | O_CREAT,
+      *outputp = open(token[i + 1], O_WRONLY | O_CREAT,
                       S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
 
       // Remove redirect and subsequent token

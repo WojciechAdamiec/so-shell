@@ -201,16 +201,16 @@ bool resumejob(int j, int bg, sigset_t *mask) {
 #ifdef STUDENT
 
   if (bg == 1 && jobs[j].state == STOPPED) {
-    Kill(-jobs[j].pgid, SIGCONT);
+    kill(-jobs[j].pgid, SIGCONT);
     msg("[%d] continue '%s'\n", j, jobcmd(j));
   } else if (bg == 0) {
     int current_job = 0;
     movejob(j, current_job);
-    Tcsetpgrp(tty_fd, jobs[current_job].pgid);
-    Tcsetattr(tty_fd, current_job, &jobs[current_job].tmodes);
+    tcsetpgrp(tty_fd, jobs[current_job].pgid);
+    tcsetattr(tty_fd, current_job, &jobs[current_job].tmodes);
 
     if (jobs[current_job].state == STOPPED) {
-      Kill(-jobs[current_job].pgid, SIGCONT);
+      kill(-jobs[current_job].pgid, SIGCONT);
       while (jobs[current_job].state == STOPPED) {
         sigsuspend(mask);
       }
@@ -232,8 +232,8 @@ bool killjob(int j) {
 
   /* TODO: I love the smell of napalm in the morning. */
 #ifdef STUDENT
-  Kill(-jobs[j].pgid, SIGCONT);
-  Kill(-jobs[j].pgid, SIGTERM);
+  kill(-jobs[j].pgid, SIGCONT);
+  kill(-jobs[j].pgid, SIGTERM);
 #endif /* !STUDENT */
 
   return true;
@@ -282,11 +282,11 @@ int monitorjob(sigset_t *mask) {
   /* TODO: Following code requires use of Tcsetpgrp of tty_fd. */
 #ifdef STUDENT
 
-  Tcsetpgrp(tty_fd, jobs[0].pgid);
+  tcsetpgrp(tty_fd, jobs[0].pgid);
 
   if (jobs[0].state == STOPPED) {
-    Kill(-jobs[0].pgid, SIGCONT);
-    Sigsuspend(mask);
+    kill(-jobs[0].pgid, SIGCONT);
+    sigsuspend(mask);
   }
 
   state = jobstate(0, &exitcode);
@@ -296,14 +296,14 @@ int monitorjob(sigset_t *mask) {
     state = jobstate(0, &exitcode);
   }
   if (state == STOPPED) {
-    Tcgetattr(tty_fd, &jobs[0].tmodes);
+    tcgetattr(tty_fd, &jobs[0].tmodes);
     int new_job = allocjob();
     movejob(0, new_job);
-    // msg("[%d] suspended '%s'\n", new_job, jobcmd(new_job));
+    msg("[%d] suspended '%s'\n", new_job, jobcmd(new_job));
   }
   if (state == STOPPED || state == FINISHED) {
-    Tcsetattr(tty_fd, 0, &shell_tmodes);
-    Tcsetpgrp(tty_fd, getpgrp());
+    tcsetattr(tty_fd, 0, &shell_tmodes);
+    tcsetpgrp(tty_fd, getpgrp());
   }
 
 #endif /* !STUDENT */
