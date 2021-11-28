@@ -136,7 +136,7 @@ noreturn void external_command(char **argv) {
       directory = strtok(NULL, ":");
     }
 
-    // free memory after using strdup
+    // free memory
     free(path_copy);
 #endif /* !STUDENT */
   } else {
