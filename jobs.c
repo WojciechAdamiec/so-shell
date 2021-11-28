@@ -232,8 +232,8 @@ bool killjob(int j) {
 
   /* TODO: I love the smell of napalm in the morning. */
 #ifdef STUDENT
-  kill(-jobs[j].pgid, SIGCONT);
   kill(-jobs[j].pgid, SIGTERM);
+  kill(-jobs[j].pgid, SIGCONT);
 #endif /* !STUDENT */
 
   return true;
