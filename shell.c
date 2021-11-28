@@ -105,7 +105,6 @@ static int do_job(token_t *token, int ntokens, bool bg) {
       msg("[%d] running '%s'\n", new_job, jobcmd(new_job));
     }
   } else { // Child
-    sleep(0.2);
     setpgid(0, 0);
 
     Sigprocmask(SIG_SETMASK, &mask, NULL);
