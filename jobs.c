@@ -283,7 +283,12 @@ int monitorjob(sigset_t *mask) {
 #ifdef STUDENT
 
   Tcsetpgrp(tty_fd, jobs[0].pgid);
-
+  
+  if (jobs[0].state == STOPPED) {
+    Kill(-jobs[0].pgid, SIGCONT);
+    Sigsuspend(mask);
+  }
+  
   state = jobstate(0, &exitcode);
 
   while (state == RUNNING) {
