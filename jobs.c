@@ -284,11 +284,6 @@ int monitorjob(sigset_t *mask) {
 
   tcsetpgrp(tty_fd, jobs[0].pgid);
 
-  if (jobs[0].state == STOPPED) {
-    kill(-jobs[0].pgid, SIGCONT);
-    sigsuspend(mask);
-  }
-
   state = jobstate(0, &exitcode);
 
   while (state == RUNNING) {
