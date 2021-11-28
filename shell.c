@@ -32,8 +32,37 @@ static int do_redir(token_t *token, int ntokens, int *inputp, int *outputp) {
   for (int i = 0; i < ntokens; i++) {
     /* TODO: Handle tokens and open files as requested. */
 #ifdef STUDENT
-    (void)mode;
-    (void)MaybeClose;
+    if (token[i] == T_INPUT) {
+      mode = T_INPUT;
+      MaybeClose(inputp);
+
+      // Read only
+      *inputp = Open(token[i + 1], O_RDONLY, 0);
+
+      // Remove redirect and subsequent token
+      token[i] = T_NULL;
+      token[i + 1] = T_NULL;
+    } else if (token[i] == T_OUTPUT) {
+      mode = T_OUTPUT;
+      MaybeClose(outputp);
+
+      // Write only. Can create file. Permissions for new file: rw-, rw-, r--
+      *outputp = Open(token[i + 1], O_WRONLY | O_CREAT,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
+
+      // Remove redirect and subsequent token
+      token[i] = T_NULL;
+      token[i + 1] = T_NULL;
+    }
+
+    else if (mode == NULL) {
+      n++;
+    }
+
+    else {
+      mode = NULL;
+    }
+
 #endif /* !STUDENT */
   }
 
@@ -59,6 +88,43 @@ static int do_job(token_t *token, int ntokens, bool bg) {
 
   /* TODO: Start a subprocess, create a job and monitor it. */
 #ifdef STUDENT
+  pid_t pid = Fork();
+
+  if (pid) { // Parent
+    setpgid(pid, pid);
+
+    MaybeClose(&input);
+    MaybeClose(&output);
+
+    int new_job = addjob(pid, bg);
+    addproc(new_job, pid, token);
+
+    if (bg == 0) {
+      exitcode = monitorjob(&mask);
+    } else {
+      msg("[%d] running '%s'\n", new_job, jobcmd(new_job));
+    }
+  } else { // Child
+    setpgid(0, 0);
+
+    Sigprocmask(SIG_SETMASK, &mask, NULL);
+
+    Signal(SIGINT, SIG_DFL);
+    Signal(SIGTSTP, SIG_DFL);
+    Signal(SIGTTIN, SIG_DFL);
+    Signal(SIGTTOU, SIG_DFL);
+
+    if (input)
+      dup2(input, STDIN_FILENO);
+    if (output)
+      dup2(output, STDOUT_FILENO);
+
+    MaybeClose(&input);
+    MaybeClose(&output);
+
+    external_command(token);
+  }
+
 #endif /* !STUDENT */
 
   Sigprocmask(SIG_SETMASK, &mask, NULL);
@@ -77,6 +143,34 @@ static pid_t do_stage(pid_t pgid, sigset_t *mask, int input, int output,
   /* TODO: Start a subprocess and make sure it's moved to a process group. */
   pid_t pid = Fork();
 #ifdef STUDENT
+
+  if (pid == 0) {
+    setpgid(getpid(), pgid);
+
+    Sigprocmask(SIG_SETMASK, mask, NULL);
+
+    Signal(SIGINT, SIG_DFL);
+    Signal(SIGTSTP, SIG_DFL);
+    Signal(SIGTTIN, SIG_DFL);
+    Signal(SIGTTOU, SIG_DFL);
+
+    if (input != -1)
+      dup2(input, STDIN_FILENO);
+    if (output != -1)
+      dup2(output, STDOUT_FILENO);
+
+    MaybeClose(&input);
+    MaybeClose(&output);
+
+    int exitcode = 0;
+    if ((exitcode = builtin_command(token)) >= 0)
+      exit(exitcode);
+
+    external_command(token);
+  }
+
+  setpgid(pid, pgid);
+
 #endif /* !STUDENT */
 
   return pid;
@@ -108,11 +202,58 @@ static int do_pipeline(token_t *token, int ntokens, bool bg) {
   /* TODO: Start pipeline subprocesses, create a job and monitor it.
    * Remember to close unused pipe ends! */
 #ifdef STUDENT
-  (void)input;
-  (void)job;
-  (void)pid;
-  (void)pgid;
-  (void)do_stage;
+
+  int cmd_start = 0;
+  int cmd_length = 0;
+  bool is_job_created = false;
+
+  token_t *token_aux = token;
+
+  for (int i = 0; i < ntokens; i++) {
+    if (token[i] == T_PIPE) {
+      token_aux = &token[cmd_start];
+
+      pid = do_stage(pgid, &mask, input, output, token_aux, cmd_length, bg);
+
+      if (is_job_created) {
+        MaybeClose(&input);
+      }
+
+      MaybeClose(&output);
+
+      input = next_input;
+      mkpipe(&next_input, &output);
+
+      if (!is_job_created) {
+        is_job_created = true;
+        pgid = pid;
+        job = addjob(pgid, bg);
+      }
+
+      addproc(job, pid, token);
+
+      cmd_start = i + 1;
+      cmd_length = 0;
+    } else {
+      cmd_length++;
+    }
+  }
+
+  MaybeClose(&next_input);
+  MaybeClose(&output);
+  token_aux = &token[cmd_start];
+  pid =
+    do_stage(pgid, &mask, input, output, token_aux, ntokens - cmd_start, bg);
+
+  MaybeClose(&input);
+  addproc(job, pid, token);
+
+  if (bg == 0) {
+    exitcode = monitorjob(&mask);
+  } else {
+    msg("[%d] running '%s'\n", job, jobcmd(job));
+  }
+
 #endif /* !STUDENT */
 
   Sigprocmask(SIG_SETMASK, &mask, NULL);

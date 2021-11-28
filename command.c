@@ -113,6 +113,31 @@ noreturn void external_command(char **argv) {
   if (!index(argv[0], '/') && path) {
     /* TODO: For all paths in PATH construct an absolute path and execve it. */
 #ifdef STUDENT
+    // convert path from (const char *) to (char *)
+    char *path_copy = strdup(path);
+
+    // Extract first directory
+    char *directory = strtok(path_copy, ":");
+
+    // Iterate through all PATH directories
+    while (directory != NULL) {
+
+      // Construct absolute path for each dirctory
+      char *absolute_path = strdup(directory);
+      strapp(&absolute_path, "/");
+      strapp(&absolute_path, argv[0]);
+
+      // Try execve
+      execve(absolute_path, argv, environ);
+
+      // free memory after using strdup
+      free(absolute_path);
+
+      directory = strtok(NULL, ":");
+    }
+
+    // free memory after using strdup
+    free(path_copy);
 #endif /* !STUDENT */
   } else {
     (void)execve(argv[0], argv, environ);
