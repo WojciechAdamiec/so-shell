@@ -88,7 +88,7 @@ static int do_job(token_t *token, int ntokens, bool bg) {
 
   /* TODO: Start a subprocess, create a job and monitor it. */
 #ifdef STUDENT
-  pid_t pid = Fork();
+  pid_t pid = fork();
 
   if (pid) { // Parent
     setpgid(pid, pid);
