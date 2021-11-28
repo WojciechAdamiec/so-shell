@@ -294,7 +294,6 @@ int monitorjob(sigset_t *mask) {
     tcgetattr(tty_fd, &jobs[0].tmodes);
     int new_job = allocjob();
     movejob(0, new_job);
-    msg("[%d] suspended '%s'\n", new_job, jobcmd(new_job));
   }
   if (state == STOPPED || state == FINISHED) {
     tcsetattr(tty_fd, 0, &shell_tmodes);
