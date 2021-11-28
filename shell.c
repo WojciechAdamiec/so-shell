@@ -114,9 +114,9 @@ static int do_job(token_t *token, int ntokens, bool bg) {
     Signal(SIGTTIN, SIG_DFL);
     Signal(SIGTTOU, SIG_DFL);
 
-    if (input)
+    if (input != -1)
       dup2(input, STDIN_FILENO);
-    if (output)
+    if (output != -1)
       dup2(output, STDOUT_FILENO);
 
     MaybeClose(&input);
