@@ -42,6 +42,7 @@ static void sigchld_handler(int sig) {
           ready = true;
           if (WIFSTOPPED(status)) {
             jobs[i].proc[j].state = STOPPED;
+            jobs[i].state = STOPPED;
           }
 
           else if (WIFEXITED(status)) {
